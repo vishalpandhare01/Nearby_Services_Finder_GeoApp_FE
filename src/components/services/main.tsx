@@ -1,74 +1,138 @@
 "use client";
+import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 
-import React from "react";
-import { MapPin, Star, Navigation } from "lucide-react";
+// Leaflet must be loaded dynamically in Next.js
+const MapContainer = dynamic(
+  () => import("react-leaflet").then((mod) => mod.MapContainer),
+  { ssr: false }
+);
 
-interface ServiceCardProps {
+const TileLayer = dynamic(
+  () => import("react-leaflet").then((mod) => mod.TileLayer),
+  { ssr: false }
+);
+
+const Marker = dynamic(
+  () => import("react-leaflet").then((mod) => mod.Marker),
+  { ssr: false }
+);
+
+const Popup = dynamic(
+  () => import("react-leaflet").then((mod) => mod.Popup),
+  { ssr: false }
+);
+
+type Service = {
+  id: string;
   name: string;
   category: string;
-  rating?: number;
-  distance?: number;
   latitude: number;
   longitude: number;
-  onClick?: () => void;
-}
-
-const ServiceCard: React.FC<ServiceCardProps> = ({
-  name,
-  category,
-  rating,
-  distance,
-  latitude,
-  longitude,
-  onClick,
-}) => {
-  return (
-    <div
-      onClick={onClick}
-      className="bg-white shadow-md rounded-2xl p-5 border border-gray-200 hover:shadow-xl transition duration-300 cursor-pointer"
-    >
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-800">{name}</h2>
-
-          <span className="inline-block mt-2 px-3 py-1 text-sm rounded-full bg-blue-100 text-blue-700">
-            {category}
-          </span>
-        </div>
-
-        {rating && (
-          <div className="flex items-center gap-1 bg-yellow-100 px-2 py-1 rounded-lg">
-            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-            <span className="text-sm font-medium">{rating}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Location */}
-      <div className="mt-4 flex items-center gap-2 text-gray-600">
-        <MapPin className="w-5 h-5 text-red-500" />
-        <span className="text-sm">
-          {latitude.toFixed(4)}, {longitude.toFixed(4)}
-        </span>
-      </div>
-
-      {/* Distance */}
-      {distance !== undefined && (
-        <div className="mt-3 flex items-center gap-2 text-gray-700">
-          <Navigation className="w-4 h-4 text-green-600" />
-          <span className="text-sm">
-            {distance.toFixed(2)} km away
-          </span>
-        </div>
-      )}
-
-      {/* Footer */}
-      <button className="mt-5 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl font-medium transition">
-        View Details
-      </button>
-    </div>
-  );
+  rating?: number;
+  distance?: number;
 };
 
-export default ServiceCard;
+
+const mockServices = [
+  {
+    id: "1",
+    name: "Apollo Hospital",
+    category: "hospital",
+    latitude: 19.0176,
+    longitude: 72.8562,
+    rating: 4.5,
+    created_at: "2026-05-13T10:00:00Z",
+    distance: 2.3,
+  },
+  {
+    id: "2",
+    name: "SBI ATM",
+    category: "atm",
+    latitude: 19.0201,
+    longitude: 72.8601,
+    rating: 4.0,
+    created_at: "2026-05-13T10:10:00Z",
+    distance: 1.2,
+  },
+  {
+    id: "3",
+    name: "Reliance Smart",
+    category: "shop",
+    latitude: 19.0142,
+    longitude: 72.8589,
+    rating: 4.2,
+    created_at: "2026-05-13T10:20:00Z",
+    distance: 3.1,
+  },
+  {
+    id: "4",
+    name: "Fortis Hospital",
+    category: "hospital",
+    latitude: 19.0225,
+    longitude: 72.8702,
+    rating: 4.6,
+    created_at: "2026-05-13T10:30:00Z",
+    distance: 4.0,
+  },
+  {
+    id: "5",
+    name: "HDFC ATM",
+    category: "atm",
+    latitude: 19.0189,
+    longitude: 72.8521,
+    rating: 3.9,
+    created_at: "2026-05-13T10:40:00Z",
+    distance: 0.8,
+  },
+];
+export default function ServicesComponent() {
+  const [services, setServices] = useState<Service[]>([]);
+
+  useEffect(() => {
+    setServices(mockServices);
+  }, []);
+
+  const center: [number, number] = [19.0176, 72.8562];
+
+   return (
+    <div className="h-screen w-full flex flex-col">
+      {/* Header */}
+      <div className="p-4 shadow bg-white">
+        <h1 className="text-xl font-bold">Services Map</h1>
+        <p className="text-sm text-gray-500">
+          Nearby Hospitals, ATMs, Shops
+        </p>
+      </div>
+
+      {/* Map */}
+      <div className="flex-1">
+        <MapContainer
+          center={center}
+          zoom={13}
+          className="h-full w-full"
+        >
+          <TileLayer
+            attribution='&copy; OpenStreetMap contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+
+          {services.map((s) => (
+            <Marker key={s.id} position={[s.latitude, s.longitude]}>
+              <Popup>
+                <div className="space-y-1">
+                  <h2 className="font-bold">{s.name}</h2>
+                  <p className="text-sm">Category: {s.category}</p>
+                  <p className="text-sm">⭐ {s.rating}</p>
+                  <p className="text-blue-600 text-sm">
+                    {s.distance} km away
+                  </p>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+        </MapContainer>
+      </div>
+    </div>
+  );
+}

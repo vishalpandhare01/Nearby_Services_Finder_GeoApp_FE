@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useState } from "react";
 import { loginApi } from "@/api/auth_api";
+import { useRouter } from "next/dist/client/components/navigation";
 
 export default function LoginComponent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
+  const router = useRouter();
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
@@ -18,6 +19,7 @@ export default function LoginComponent() {
     try {
       await loginApi({ email, password });
       window.alert("Login successful");
+      router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
     } finally {
