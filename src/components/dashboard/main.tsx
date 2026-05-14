@@ -113,6 +113,7 @@ export default function Dashboard() {
         e.preventDefault();
         setLoading(true);
         setError(null);
+        console.log("Submitting form with data:", formData, "Edit ID:", editId);
         try {
             if (editId) {
                 await updateService({
@@ -267,7 +268,6 @@ export default function Dashboard() {
                         {editId && <button
                             type="submit"
                             className="bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition"
-                            disabled={loading}
                         >
                             Update Service
                         </button>
@@ -275,7 +275,6 @@ export default function Dashboard() {
                         {!editId && <button
                             type="submit"
                             className="bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition"
-                            disabled={loading}
                         >
                             Add Service
                         </button>
