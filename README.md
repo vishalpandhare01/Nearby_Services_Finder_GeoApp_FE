@@ -39,7 +39,8 @@ To learn more about Next.js, take a look at the following resources:
 - [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
 
 
-https://github.com/user-attachments/assets/f2aac2e6-d5c2-40c4-902a-d6e46bf3bea0
+
+
 
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
