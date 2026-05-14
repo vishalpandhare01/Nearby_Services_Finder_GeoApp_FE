@@ -2,6 +2,7 @@
 
 import { ChangeEvent, FormEvent, useState, useEffect, use } from "react";
 import { getAllServices, createService, updateService, deleteService } from "@/api/service_management";
+import dynamic from "next/dynamic";
 
 interface Service {
   id: string;
@@ -14,58 +15,6 @@ interface Service {
   distance: number;
 }
 
-const initialServices: Service[] = [
-  {
-    id: "1",
-    name: "Apollo Hospital",
-    category: "hospital",
-    latitude: 19.0176,
-    longitude: 72.8562,
-    rating: 4.5,
-    created_at: "2026-05-13T10:00:00Z",
-    distance: 2.3,
-  },
-  {
-    id: "2",
-    name: "SBI ATM",
-    category: "atm",
-    latitude: 19.0201,
-    longitude: 72.8601,
-    rating: 4.0,
-    created_at: "2026-05-13T10:10:00Z",
-    distance: 1.2,
-  },
-  {
-    id: "3",
-    name: "Reliance Smart",
-    category: "shop",
-    latitude: 19.0142,
-    longitude: 72.8589,
-    rating: 4.2,
-    created_at: "2026-05-13T10:20:00Z",
-    distance: 3.1,
-  },
-  {
-    id: "4",
-    name: "Fortis Hospital",
-    category: "hospital",
-    latitude: 19.0225,
-    longitude: 72.8702,
-    rating: 4.6,
-    created_at: "2026-05-13T10:30:00Z",
-    distance: 4.0,
-  },
-  {
-    id: "5",
-    name: "HDFC ATM",
-    category: "atm",
-    latitude: 19.0189,
-    longitude: 72.8521,
-    rating: 3.9,
-    created_at: "2026-05-13T10:40:00Z",
-    distance: 0.8,
-  },
-];
 
 interface FormDataType {
   name: string;
@@ -83,6 +32,13 @@ const emptyForm: FormDataType = {
   rating: "",
 };
 
+const MapPicker = dynamic(
+  () => import("./map"),
+  {
+    ssr: false,
+  }
+);
+
 export default function Dashboard() {
   const [services, setServices] =
     useState<Service[]>([]);
@@ -93,6 +49,9 @@ export default function Dashboard() {
   const [editId, setEditId] = useState<string | null>(null);
 
   const [showDeleteModal, setShowDeleteModal] =
+    useState<boolean>(false);
+
+  const [showMapModal, setShowMapModal] =
     useState<boolean>(false);
 
   const [deleteId, setDeleteId] =
@@ -212,7 +171,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-6">
       {error && (
         <div className="fixed top-4 left-1/2 z-50 w-full max-w-sm -translate-x-1/2 rounded-3xl bg-red-600/95 px-4 py-3 text-sm text-white shadow-2xl">
           {error}
@@ -292,13 +251,31 @@ export default function Dashboard() {
               className="border p-3 rounded-lg"
               required
             />
-
             <button
+              type="button"
+              onClick={() => setShowMapModal(true)}
+              className="bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition"
+            >
+              Select Location
+            </button>
+
+           { editId && <button
               type="submit"
               className="bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition"
+              disabled={loading}
             >
-              {editId ? "Update Service" : "Add Service"}
+              Update Service
             </button>
+            }
+            {! editId && <button
+              type="submit"
+              className="bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition"
+              disabled={loading}
+            >
+              Add Service
+            </button>
+            }
+            
           </form>
         </div>
 
@@ -318,7 +295,7 @@ export default function Dashboard() {
             </thead>
 
             <tbody>
-              {services.map((service) => (
+              {services &&services.map((service) => (
                 <tr
                   key={service.id}
                   className="border-t hover:bg-gray-50"
@@ -406,6 +383,35 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        {/* Show Map model*/ }
+         {showMapModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-xl w-full shadow-lg">
+              <h2 className="text-xl font-bold mb-4">
+                 Map
+              </h2>
+
+              <p className="text-gray-600 mb-6">
+                select longitude and latitude from map
+              </p>
+
+              <MapPicker formData={formData} setFormData={setFormData} />
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() =>
+                    setShowMapModal(false)
+                  }
+                  className="border px-4 py-2 rounded"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

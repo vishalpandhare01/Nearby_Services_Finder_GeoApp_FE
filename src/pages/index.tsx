@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
-import ServicesComponent from "@/components/services/main";
+import dynamic from "next/dynamic";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -11,6 +11,10 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const ServiceMap = dynamic(() => import("../components/services/main"), {
+  ssr: false,
 });
 
 export default function Home() {
@@ -62,7 +66,8 @@ export default function Home() {
         </nav>
       </header>
 
-      <ServicesComponent />
+      <ServiceMap />
+
       {/* Footer */}
       <footer className="border-t border-white/10 py-8 text-center text-gray-400">
         <p>

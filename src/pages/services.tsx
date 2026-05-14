@@ -117,7 +117,7 @@ export default function ServicesPage() {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {services.map((s) => (
+          {services && services.map((s) => (
             <Marker key={s.id} position={[s.latitude, s.longitude]}>
               <Popup>
                 <div className="space-y-1">

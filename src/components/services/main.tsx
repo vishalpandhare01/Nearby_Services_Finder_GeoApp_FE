@@ -1,27 +1,11 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+import { getServiceList } from "@/api/service_management";
 
-// Leaflet must be loaded dynamically in Next.js
-const MapContainer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.MapContainer),
-  { ssr: false }
-);
-
-const TileLayer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.TileLayer),
-  { ssr: false }
-);
-
-const Marker = dynamic(
-  () => import("react-leaflet").then((mod) => mod.Marker),
-  { ssr: false }
-);
-
-const Popup = dynamic(
-  () => import("react-leaflet").then((mod) => mod.Popup),
-  { ssr: false }
-);
 
 type Service = {
   id: string;
@@ -31,108 +15,190 @@ type Service = {
   longitude: number;
   rating?: number;
   distance?: number;
+  created_at: string;
 };
 
-
-const mockServices = [
-  {
-    id: "1",
-    name: "Apollo Hospital",
-    category: "hospital",
-    latitude: 19.0176,
-    longitude: 72.8562,
-    rating: 4.5,
-    created_at: "2026-05-13T10:00:00Z",
-    distance: 2.3,
-  },
-  {
-    id: "2",
-    name: "SBI ATM",
-    category: "atm",
-    latitude: 19.0201,
-    longitude: 72.8601,
-    rating: 4.0,
-    created_at: "2026-05-13T10:10:00Z",
-    distance: 1.2,
-  },
-  {
-    id: "3",
-    name: "Reliance Smart",
-    category: "shop",
-    latitude: 19.0142,
-    longitude: 72.8589,
-    rating: 4.2,
-    created_at: "2026-05-13T10:20:00Z",
-    distance: 3.1,
-  },
-  {
-    id: "4",
-    name: "Fortis Hospital",
-    category: "hospital",
-    latitude: 19.0225,
-    longitude: 72.8702,
-    rating: 4.6,
-    created_at: "2026-05-13T10:30:00Z",
-    distance: 4.0,
-  },
-  {
-    id: "5",
-    name: "HDFC ATM",
-    category: "atm",
-    latitude: 19.0189,
-    longitude: 72.8521,
-    rating: 3.9,
-    created_at: "2026-05-13T10:40:00Z",
-    distance: 0.8,
-  },
-];
-export default function ServicesComponent() {
-  const [services, setServices] = useState<Service[]>([]);
+function useDebounce(value: string, delay = 500) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
 
   useEffect(() => {
-    setServices(mockServices);
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+// fix default marker icon issue in Next.js
+const defaultIcon = new L.Icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
+function Recenter({ lat, lng }: { lat: number; lng: number }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (lat && lng) {
+      map.setView([lat, lng], 13);
+    }
+  }, [lat, lng, map]);
+
+  return null;
+}
+
+export default function ServiceMap() {
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [lattitude, setLatitude] = useState(19.0176);
+  const [longitude, setLongitude] = useState(72.8562);
+  const [category, setCategory] = useState("");
+  const [radius, setRadius] = useState(5); // km
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+
+  const center: [number, number] = [lattitude, longitude];
+
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition((pos) => {
+      setLatitude(pos.coords.latitude);
+      setLongitude(pos.coords.longitude);
+    });
   }, []);
 
-  const center: [number, number] = [19.0176, 72.8562];
+  async function fetchServices() {
+    setLoading(true);
+    try {
+      const res = await getServiceList(
+        lattitude.toString(),
+        longitude.toString(),
+        radius,
+        20,
+        1,
+        category
+      );
 
-   return (
-    <div className="h-screen w-full flex flex-col">
-      {/* Header */}
-      <div className="p-4 shadow bg-white">
-        <h1 className="text-xl font-bold">Services Map</h1>
-        <p className="text-sm text-gray-500">
-          Nearby Hospitals, ATMs, Shops
-        </p>
+      setServices(res || []);
+      console.log("Fetched services:", res);
+    } catch (error) {
+      console.error("Error fetching services:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const debouncedCategory = useDebounce(category, 500);
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        setUserLocation({ lat, lng });
+        setLatitude(lat);
+        setLongitude(lng);
+      },
+      (err) => {
+        console.error("Location error:", err);
+      }
+    );
+  }, []);
+
+  useEffect(() => {
+    fetchServices();
+  }, [lattitude, longitude, radius, debouncedCategory]);
+
+
+  return (
+    <div className="w-full h-[600px] rounded-xl overflow-hidden shadow-lg relative">
+      <div className="absolute z-[1000] top-4 left-12 bg-white shadow-md rounded-lg p-2 w-[280px]">
+        <input
+          type="text"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          placeholder="Search hospitals, clinics..."
+          className="w-full px-3 py-2 text-sm text-black border rounded-md outline-none focus:ring-2 focus:ring-blue-400"
+        />
+        <input
+          type="number"
+          value={radius}
+          onChange={(e) => setRadius(Number(e.target.value))}
+          placeholder="Radius (km)"
+          title="Radius (km)"
+          className="w-full px-3 py-2 text-sm text-black border rounded-md outline-none focus:ring-2 focus:ring-blue-400"
+        />
       </div>
+      {loading && (
+        <div className="absolute z-[999] top-3 left-3 bg-white px-3 py-1 rounded shadow text-sm">
+          Loading services...
+        </div>
+      )}
 
-      {/* Map */}
-      <div className="flex-1">
-        <MapContainer
-          center={center}
-          zoom={13}
-          className="h-full w-full"
-        >
-          <TileLayer
-            attribution='&copy; OpenStreetMap contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+      <MapContainer
+        center={center}
+        zoom={12}
+        className="h-full w-full"
+        scrollWheelZoom
+      >
+        <TileLayer
+          attribution="&copy; OpenStreetMap contributors"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
 
-          {services.map((s) => (
-            <Marker key={s.id} position={[s.latitude, s.longitude]}>
-              <Popup>
-                <div className="space-y-1">
-                  <h2 className="font-bold">{s.name}</h2>
-                  <p className="text-sm">Category: {s.category}</p>
-                  <p className="text-sm">⭐ {s.rating}</p>
-                  <p className="text-blue-600 text-sm">
-                    {s.distance} km away
+        <Recenter lat={center[0]} lng={center[1]} />
+
+        {services && services.map((service) => (
+          <Marker
+            key={service.id}
+            position={[service.latitude, service.longitude]}
+            icon={defaultIcon}
+          >
+            <Popup>
+              <div className="min-w-[180px]">
+                <h2 className="font-semibold">{service.name}</h2>
+                <p className="text-sm text-gray-600">
+                  {service.category}
+                </p>
+
+                {service.rating && (
+                  <p className="text-sm">⭐ {service.rating}</p>
+                )}
+
+                {service.distance && (
+                  <p className="text-xs text-gray-500">
+                    {service.distance} km away
                   </p>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
-      </div>
+                )}
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+        {userLocation && (
+          <Marker
+            position={[userLocation.lat, userLocation.lng]}
+            icon={L.icon({
+              iconUrl:
+                "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+              iconSize: [32, 32],
+              iconAnchor: [16, 32],
+            })}
+          >
+            <Popup>
+              <b>Your Location</b>
+            </Popup>
+          </Marker>
+        )}
+      </MapContainer>
+
     </div>
   );
 }
