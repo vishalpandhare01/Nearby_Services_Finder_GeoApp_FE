@@ -11,6 +11,7 @@ BASE_API_URL=http://127.0.0.1:8000/api/v1/
 First, run the development server:
 
 ```bash
+npm i
 npm run dev
 # or
 yarn dev
