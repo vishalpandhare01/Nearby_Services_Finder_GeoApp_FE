@@ -43,10 +43,10 @@ export default function Home() {
             </Link>
 
             <Link
-              href="/dashboard/manage_services/"
+              href="/dashboard/"
               className="hover:text-blue-400 transition"
             >
-              Manage Services
+              Dashboard
             </Link>
 
             <Link
